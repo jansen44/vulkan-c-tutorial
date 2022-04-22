@@ -1,0 +1,6 @@
+# BINS
+target/
+
+# IDE Stuff
+.idea/
+.vscode/
