@@ -2,10 +2,12 @@ CFLAGS = -O2
 LDFLAGS = -lglfw -lvulkan
 BIN_NAME = hello-triangle
 
-build-and-run: make-target build
+build: make-target compile
+
+run: build
 	./target/$(BIN_NAME)
 
-build: main.c
+compile: main.c
 	gcc $(CFLAGS) -o target/$(BIN_NAME) main.c $(LDFLAGS)
 
 make-target:
