@@ -147,3 +147,47 @@ VkInstance* initVulkanInstance() {
 
     return instance;
 }
+
+int isDeviceSuitable(VkPhysicalDevice device) {
+    // VkPhysicalDeviceProperties deviceProperties;
+    // vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+    // VkPhysicalDeviceFeatures deviceFeatures;
+    // vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    // if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader) {
+    //     return 1;
+    // }
+
+    // return 0;
+    return 1;
+}
+
+VkPhysicalDevice* initPhysicalDevice(VkInstance* instance) {
+    VkPhysicalDevice* physicalDevice = malloc(sizeof(VkPhysicalDevice));
+    physicalDevice = VK_NULL_HANDLE;
+
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(*instance, &deviceCount, NULL);
+    if (deviceCount == 0) {
+        fprintf(stderr, "[ERROR] Failed to find GPUs with vulkan support!");
+        return NULL;
+    }
+
+    VkPhysicalDevice* devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
+    vkEnumeratePhysicalDevices(*instance, &deviceCount, devices);
+
+    for (int i = 0; i < deviceCount; i++) {
+        if (isDeviceSuitable(devices[i])) {
+            physicalDevice = &devices[i];
+            break;
+        }
+    }
+
+    if (physicalDevice == VK_NULL_HANDLE) {
+        fprintf(stderr, "[ERROR] Failed to find suitable GPU!");
+        return NULL;
+    }
+
+    return physicalDevice;
+}

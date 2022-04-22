@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef NDEBUG
+#define ENABLE_VALIDATION_LAYERS
+#endif
+
 #define WIN_WIDTH 800
 #define WIN_HEIGHT 600
 #define WIN_TITLE "Vulkan Test: Hello triangle"
@@ -30,5 +34,6 @@ int checkForMissingNecessaryExtensions(struct VKExtensions, struct GLFWExtension
 // Validation layers related functions
 int checkValidationLayerSupport(void);
 VkInstance* initVulkanInstance(void);
+VkPhysicalDevice* initPhysicalDevice(VkInstance*);
 
 #endif

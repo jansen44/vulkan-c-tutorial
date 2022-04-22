@@ -1,7 +1,3 @@
-#ifndef NDEBUG
-#define ENABLE_VALIDATION_LAYERS
-#endif
-
 #include "vulkan.h"
 
 //#define GLM_FORCE_RADIANS
@@ -22,6 +18,11 @@ int main() {
 
     VkInstance* instance = initVulkanInstance();
     if (instance == NULL) {
+        return EXIT_FAILURE;
+    }
+
+    VkPhysicalDevice* physicalDevice =  initPhysicalDevice(instance);
+    if (physicalDevice == NULL) {
         return EXIT_FAILURE;
     }
 
