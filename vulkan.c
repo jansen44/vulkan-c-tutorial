@@ -148,19 +148,35 @@ VkInstance* initVulkanInstance() {
     return instance;
 }
 
+struct QueueFamilyIndices {
+    uint32_t* graphicsFamily;
+};
+
+struct QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+    struct QueueFamilyIndices indices;
+    indices.graphicsFamily = NULL;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
+
+    VkQueueFamilyProperties* queueFamilies = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
+
+    for (int i = 0; i < queueFamilyCount; i++) {
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = malloc(sizeof(uint32_t));
+            *indices.graphicsFamily = i;
+            break;
+        }
+    }
+
+    return indices;
+}
+
 int isDeviceSuitable(VkPhysicalDevice device) {
-    // VkPhysicalDeviceProperties deviceProperties;
-    // vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    struct QueueFamilyIndices indices = findQueueFamilies(device);
 
-    // VkPhysicalDeviceFeatures deviceFeatures;
-    // vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-    // if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader) {
-    //     return 1;
-    // }
-
-    // return 0;
-    return 1;
+    return indices.graphicsFamily != NULL;
 }
 
 VkPhysicalDevice* initPhysicalDevice(VkInstance* instance) {
