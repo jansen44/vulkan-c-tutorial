@@ -26,7 +26,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    VkDevice* device = initLogicalDevice(physicalDevice);
+    struct VKDeviceQueue* device = initLogicalDevice(physicalDevice);
     if (device == NULL) {
         return EXIT_FAILURE;
     }
@@ -37,7 +37,7 @@ int main() {
     }
 
     // Cleanup
-    vkDestroyDevice(*device, NULL);
+    vkDestroyDevice(device->device, NULL);
     vkDestroyInstance(*instance, NULL);
 
     glfwDestroyWindow(window);

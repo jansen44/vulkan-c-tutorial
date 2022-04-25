@@ -26,6 +26,11 @@ struct VKValidationLayers {
     uint32_t count;
 };
 
+struct VKDeviceQueue {
+    VkDevice device;
+    VkQueue graphicsQueue;
+};
+
 // Extensions related functions
 struct VKExtensions listAvailableVKExtensions(void);
 int checkForMissingNecessaryExtensions(struct VKExtensions);
@@ -37,6 +42,6 @@ int checkValidationLayerSupport(struct VKValidationLayers);
 // Initializers
 VkInstance* initVulkanInstance(void);
 VkPhysicalDevice* initPhysicalDevice(VkInstance*);
-VkDevice* initLogicalDevice(VkPhysicalDevice*);
+struct VKDeviceQueue* initLogicalDevice(VkPhysicalDevice*);
 
 #endif

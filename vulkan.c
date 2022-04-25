@@ -111,6 +111,10 @@ struct QueueFamilyIndices {
     uint32_t* graphicsFamily;
 };
 
+int isQueueFamilySuitable(VkQueueFamilyProperties queueFamilyProps) {
+    return queueFamilyProps.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+}
+
 struct QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
     struct QueueFamilyIndices indices;
     indices.graphicsFamily = NULL;
@@ -123,7 +127,7 @@ struct QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
 
     for (int i = 0; i < queueFamilyCount; i++) {
-        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if (isQueueFamilySuitable(queueFamilies[i])) {
             indices.graphicsFamily = malloc(sizeof(uint32_t));
             *indices.graphicsFamily = i;
             break;
@@ -230,7 +234,7 @@ VkPhysicalDevice* initPhysicalDevice(VkInstance* instance) {
     return physicalDevice;
 }
 
-VkDevice* initLogicalDevice(VkPhysicalDevice* physicalDevice) {
+struct VKDeviceQueue* initLogicalDevice(VkPhysicalDevice* physicalDevice) {
     struct QueueFamilyIndices indices = findQueueFamilies(*physicalDevice);
     float queuePriority = 1.0f;
 
@@ -255,10 +259,18 @@ VkDevice* initLogicalDevice(VkPhysicalDevice* physicalDevice) {
         .ppEnabledExtensionNames = extensions,
     };
 
-    VkDevice* device = malloc(sizeof(VkDevice));
-    if (vkCreateDevice(*physicalDevice, &createInfo, NULL, device) != VK_SUCCESS) {
+    VkDevice device;
+    if (vkCreateDevice(*physicalDevice, &createInfo, NULL, &device) != VK_SUCCESS) {
         fprintf(stderr, "[ERROR] failed to create logical device\n");
         return NULL;
     }
-    return device;
+
+    VkQueue graphicsQueue;
+    vkGetDeviceQueue(device, *indices.graphicsFamily, 0, &graphicsQueue);
+
+    struct VKDeviceQueue *deviceQueue = malloc(sizeof(struct VKDeviceQueue));
+    deviceQueue->device = device;
+    deviceQueue->graphicsQueue = graphicsQueue;
+
+    return deviceQueue;
 }
