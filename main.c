@@ -16,18 +16,8 @@ int main() {
 
     GLFWwindow* window = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT, WIN_TITLE, NULL, NULL);
 
-    VkInstance* instance = initVulkanInstance();
-    if (instance == NULL) {
-        return EXIT_FAILURE;
-    }
-
-    VkPhysicalDevice* physicalDevice = initPhysicalDevice(instance);
-    if (physicalDevice == NULL) {
-        return EXIT_FAILURE;
-    }
-
-    struct VKDeviceQueue* device = initLogicalDevice(physicalDevice);
-    if (device == NULL) {
+    struct VKSetup* vulkanSetup = initVulkan();
+    if (vulkanSetup == NULL) {
         return EXIT_FAILURE;
     }
 
@@ -37,8 +27,7 @@ int main() {
     }
 
     // Cleanup
-    vkDestroyDevice(device->device, NULL);
-    vkDestroyInstance(*instance, NULL);
+    cleanVulkan(*vulkanSetup);
 
     glfwDestroyWindow(window);
     glfwTerminate();

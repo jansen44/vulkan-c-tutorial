@@ -31,6 +31,12 @@ struct VKDeviceQueue {
     VkQueue graphicsQueue;
 };
 
+struct VKSetup {
+    VkInstance instance;
+    VkPhysicalDevice physicalDevice;
+    struct VKDeviceQueue deviceQueue;
+};
+
 // Extensions related functions
 struct VKExtensions listAvailableVKExtensions(void);
 int checkForMissingNecessaryExtensions(struct VKExtensions);
@@ -40,8 +46,12 @@ struct VKValidationLayers listAvailableVKValidationLayers(void);
 int checkValidationLayerSupport(struct VKValidationLayers);
 
 // Initializers
+struct VKSetup* initVulkan(void);
 VkInstance* initVulkanInstance(void);
 VkPhysicalDevice* initPhysicalDevice(VkInstance*);
 struct VKDeviceQueue* initLogicalDevice(VkPhysicalDevice*);
+
+// Garbage
+void cleanVulkan(struct VKSetup);
 
 #endif

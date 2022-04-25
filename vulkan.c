@@ -145,6 +145,29 @@ int isDeviceSuitable(VkPhysicalDevice device) {
 // ===========================================================================================
 // Initializers ==============================================================================
 // ===========================================================================================
+struct VKSetup* initVulkan() {
+    VkInstance* instance = initVulkanInstance();
+    if (instance == NULL) {
+        return NULL;
+    }
+
+    VkPhysicalDevice* physicalDevice = initPhysicalDevice(instance);
+    if (physicalDevice == NULL) {
+        return NULL;
+    }
+
+    struct VKDeviceQueue* deviceQueue = initLogicalDevice(physicalDevice);
+    if (deviceQueue == NULL) {
+        return NULL;
+    }
+
+    struct VKSetup *setup = malloc(sizeof(struct VKSetup));
+    setup->instance = *instance;
+    setup->physicalDevice = *physicalDevice;
+    setup->deviceQueue = *deviceQueue;
+    return setup;
+}
+
 VkInstance* initVulkanInstance() {
 #ifdef ENABLE_VALIDATION_LAYERS
     if (checkValidationLayerSupport(listAvailableVKValidationLayers()) != 0) {
@@ -273,4 +296,12 @@ struct VKDeviceQueue* initLogicalDevice(VkPhysicalDevice* physicalDevice) {
     deviceQueue->graphicsQueue = graphicsQueue;
 
     return deviceQueue;
+}
+
+// ===========================================================================================
+// Garbage ===================================================================================
+// ===========================================================================================
+void cleanVulkan(struct VKSetup setup) {
+    vkDestroyDevice(setup.deviceQueue.device, NULL);
+    vkDestroyInstance(setup.instance, NULL);
 }
