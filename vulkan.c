@@ -10,32 +10,42 @@ static const char* validationLayers[] = {
     "VK_LAYER_KHRONOS_validation",
 };
 
-#define NECESSARY_EXTENSIONS_COUNT (sizeof(necessaryExtensions)/sizeof(const char*))
+#define NECESSARY_EXTENSIONS_COUNT (sizeof(necessaryExtensions) / sizeof(const char*))
 #define VALIDATION_LAYERS_AMOUNT (sizeof(validationLayers) / sizeof(const char*))
 
+// ===========================================================================================
+// Extensions related functions ==============================================================
+// ===========================================================================================
 struct VKExtensions listAvailableVKExtensions() {
-    // List and print available VK extensions
-    uint32_t extensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
+    uint32_t count = 0;
+    vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
 
-    VkExtensionProperties* extensions = malloc(sizeof(VkExtensionProperties) * extensionCount);
-    vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensions);
+    VkExtensionProperties* extensions = malloc(sizeof(VkExtensionProperties) * count);
+    vkEnumerateInstanceExtensionProperties(NULL, &count, extensions);
 
-    struct VKExtensions exts = {
-        .count = extensionCount,
+    struct VKExtensions availableExtensions = {
+        .count = count,
         .extensions = extensions,
     };
 
-    return exts;
+#ifdef VK_VERBOSE
+    printf("[INFO] available extensions:\n");
+    for (int i = 0; i < availableExtensions.count; i++) {
+        printf("[INFO]\t\t%s\n", availableExtensions.extensions[i].extensionName);
+    }
+#endif
+
+    return availableExtensions;
 }
 
-int checkForMissingNecessaryExtensions(struct VKExtensions extensions) {
-    int found = 0;
+int checkForMissingNecessaryExtensions(struct VKExtensions availableExtensions) {
     int missingExtensions = 0;
-
     for (int i = 0; i < NECESSARY_EXTENSIONS_COUNT; i++) {
-        for (int j = 0; j < extensions.count; j++) {
-            if (strcmp(necessaryExtensions[i], extensions.extensions[j].extensionName) == 0) {
+        int found = 0;
+        for (int j = 0; j < availableExtensions.count; j++) {
+            if (strcmp(
+                    necessaryExtensions[i],
+                    availableExtensions.extensions[j].extensionName) == 0) {
                 found = 1;
                 break;
             }
@@ -44,64 +54,113 @@ int checkForMissingNecessaryExtensions(struct VKExtensions extensions) {
             fprintf(stderr, "[ERROR] Missing necessary VK extension: %s\n", necessaryExtensions[i]);
             missingExtensions++;
         }
-        found = 0;
     }
 
     return missingExtensions;
 }
 
-int checkValidationLayerSupport() {
-    uint32_t layerCount = 0;
-    vkEnumerateInstanceLayerProperties(&layerCount, NULL);
+// ===========================================================================================
+//  Validation layers related functions ======================================================
+// ===========================================================================================
+struct VKValidationLayers listAvailableVKValidationLayers() {
+    uint32_t count = 0;
+    vkEnumerateInstanceLayerProperties(&count, NULL);
 
-    VkLayerProperties* availableLayers = malloc(sizeof(VkLayerProperties) * layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers);
+    VkLayerProperties* layers = malloc(sizeof(VkLayerProperties) * count);
+    vkEnumerateInstanceLayerProperties(&count, layers);
 
-    int layerFound = 0;
+    struct VKValidationLayers availableLayers = {
+        .count = count,
+        .layers = layers,
+    };
+
+    return availableLayers;
+}
+
+int checkValidationLayerSupport(struct VKValidationLayers availableLayers) {
+    int missingLayers = 0;
     for (int i = 0; i < VALIDATION_LAYERS_AMOUNT; i++) {
-        for (int j = 0; j < layerCount; j++) {
-            if (strcmp(validationLayers[i], availableLayers[j].layerName) == 0) {
-                layerFound = 1;
+        int found = 0;
+        for (int j = 0; j < availableLayers.count; j++) {
+            if (strcmp(validationLayers[i], availableLayers.layers[j].layerName) == 0) {
+                found = 1;
                 break;
             }
         }
 
-        if (layerFound == 0) {
+        if (found == 0) {
             fprintf(stderr, "[ERROR] requested validation layer \"%s\" not available!\n", validationLayers[i]);
-            return 1;
+            missingLayers++;
         }
-        layerFound = 0;
     }
 
-    return 0;
+    return missingLayers;
 }
 
+// ===========================================================================================
+// Helpers ===================================================================================
+// ===========================================================================================
+static void showNecessaryExtensions() {
+    printf("[INFO] necessary extensions:\n");
+    for (int i = 0; i < NECESSARY_EXTENSIONS_COUNT; i++) {
+        printf("[INFO]\t\t%s\n", necessaryExtensions[i]);
+    }
+}
+
+struct QueueFamilyIndices {
+    uint32_t* graphicsFamily;
+};
+
+struct QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+    struct QueueFamilyIndices indices;
+    indices.graphicsFamily = NULL;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
+
+    VkQueueFamilyProperties* queueFamilies =
+        malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
+
+    for (int i = 0; i < queueFamilyCount; i++) {
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = malloc(sizeof(uint32_t));
+            *indices.graphicsFamily = i;
+            break;
+        }
+    }
+
+    return indices;
+}
+
+int isDeviceSuitable(VkPhysicalDevice device) {
+    struct QueueFamilyIndices indices = findQueueFamilies(device);
+    return indices.graphicsFamily != NULL;
+}
+
+// ===========================================================================================
+// Initializers ==============================================================================
+// ===========================================================================================
 VkInstance* initVulkanInstance() {
 #ifdef ENABLE_VALIDATION_LAYERS
-    int found = 0;
-    if ((found = checkValidationLayerSupport()) != 0) {
+    if (checkValidationLayerSupport(listAvailableVKValidationLayers()) != 0) {
         fprintf(stderr, "[ERROR] validation layers requested, but not available!\n");
         return NULL;
     }
 #endif
 
-    // Load VK available extensions
     struct VKExtensions extensions = listAvailableVKExtensions();
 
-    printf("[INFO] available extensions:\n");
-    for (int i = 0; i < extensions.count; i++) {
-        printf("[INFO]\t\t%s\n", extensions.extensions[i].extensionName);
-    }
-
-    // Check necessary extensions
-    printf("[INFO] necessary extensions:\n");
-    for (int i = 0; i < NECESSARY_EXTENSIONS_COUNT; i++) {
-        printf("[INFO]\t\t%s\n", necessaryExtensions[i]);
-    }
+#ifdef VK_VERBOSE
+    showNecessaryExtensions();
+#endif
 
     int missingExtensionCount = checkForMissingNecessaryExtensions(extensions);
     if (missingExtensionCount != 0) {
-        fprintf(stderr, "[ERROR] At least %d necessary necessary extensions missing\n", missingExtensionCount);
+        fprintf(
+            stderr,
+            "[ERROR] At least %d necessary necessary extensions missing\n",
+            missingExtensionCount);
         return NULL;
     }
 
@@ -142,37 +201,6 @@ VkInstance* initVulkanInstance() {
     return instance;
 }
 
-struct QueueFamilyIndices {
-    uint32_t* graphicsFamily;
-};
-
-struct QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
-    struct QueueFamilyIndices indices;
-    indices.graphicsFamily = NULL;
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
-
-    VkQueueFamilyProperties* queueFamilies = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
-
-    for (int i = 0; i < queueFamilyCount; i++) {
-        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphicsFamily = malloc(sizeof(uint32_t));
-            *indices.graphicsFamily = i;
-            break;
-        }
-    }
-
-    return indices;
-}
-
-int isDeviceSuitable(VkPhysicalDevice device) {
-    struct QueueFamilyIndices indices = findQueueFamilies(device);
-
-    return indices.graphicsFamily != NULL;
-}
-
 VkPhysicalDevice* initPhysicalDevice(VkInstance* instance) {
     VkPhysicalDevice* physicalDevice = malloc(sizeof(VkPhysicalDevice));
     physicalDevice = VK_NULL_HANDLE;
@@ -202,7 +230,7 @@ VkPhysicalDevice* initPhysicalDevice(VkInstance* instance) {
     return physicalDevice;
 }
 
-VkDevice* createLogicalDevice(VkPhysicalDevice* physicalDevice) {
+VkDevice* initLogicalDevice(VkPhysicalDevice* physicalDevice) {
     struct QueueFamilyIndices indices = findQueueFamilies(*physicalDevice);
     float queuePriority = 1.0f;
 

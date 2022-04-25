@@ -21,12 +21,12 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    VkPhysicalDevice* physicalDevice =  initPhysicalDevice(instance);
+    VkPhysicalDevice* physicalDevice = initPhysicalDevice(instance);
     if (physicalDevice == NULL) {
         return EXIT_FAILURE;
     }
 
-    VkDevice* device =  createLogicalDevice(physicalDevice);
+    VkDevice* device = initLogicalDevice(physicalDevice);
     if (device == NULL) {
         return EXIT_FAILURE;
     }
