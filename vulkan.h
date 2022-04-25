@@ -21,19 +21,14 @@ struct VKExtensions {
     uint32_t count;
 };
 
-struct GLFWExtensions {
-    const char** extensions;
-    uint32_t count;
-};
-
 // Extensions related functions
 struct VKExtensions listAvailableVKExtensions(void);
-struct GLFWExtensions listGLFWExtensions(void);
-int checkForMissingNecessaryExtensions(struct VKExtensions, struct GLFWExtensions);
+int checkForMissingNecessaryExtensions(struct VKExtensions);
 
 // Validation layers related functions
 int checkValidationLayerSupport(void);
 VkInstance* initVulkanInstance(void);
 VkPhysicalDevice* initPhysicalDevice(VkInstance*);
+VkDevice* createLogicalDevice(VkPhysicalDevice*);
 
 #endif

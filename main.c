@@ -26,12 +26,18 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    VkDevice* device =  createLogicalDevice(physicalDevice);
+    if (device == NULL) {
+        return EXIT_FAILURE;
+    }
+
     status = mainLoop(window);
     if (status != 0) {
         return status;
     }
 
     // Cleanup
+    vkDestroyDevice(*device, NULL);
     vkDestroyInstance(*instance, NULL);
 
     glfwDestroyWindow(window);

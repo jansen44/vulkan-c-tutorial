@@ -1,8 +1,16 @@
 #include "vulkan.h"
 
+static const char* necessaryExtensions[] = {
+    "VK_KHR_surface",
+    "VK_EXT_metal_surface",
+    "VK_KHR_get_physical_device_properties2",
+};
+
 static const char* validationLayers[] = {
     "VK_LAYER_KHRONOS_validation",
 };
+
+#define NECESSARY_EXTENSIONS_COUNT (sizeof(necessaryExtensions)/sizeof(const char*))
 #define VALIDATION_LAYERS_AMOUNT (sizeof(validationLayers) / sizeof(const char*))
 
 struct VKExtensions listAvailableVKExtensions() {
@@ -21,31 +29,19 @@ struct VKExtensions listAvailableVKExtensions() {
     return exts;
 }
 
-struct GLFWExtensions listGLFWExtensions() {
-    uint32_t extensionCount = 0;
-    const char** extensions = glfwGetRequiredInstanceExtensions(&extensionCount);
-
-    struct GLFWExtensions exts = {
-        .count = extensionCount,
-        .extensions = extensions,
-    };
-
-    return exts;
-}
-
-int checkForMissingNecessaryExtensions(struct VKExtensions extensions, struct GLFWExtensions glfwExtensions) {
+int checkForMissingNecessaryExtensions(struct VKExtensions extensions) {
     int found = 0;
     int missingExtensions = 0;
 
-    for (int i = 0; i < glfwExtensions.count; i++) {
+    for (int i = 0; i < NECESSARY_EXTENSIONS_COUNT; i++) {
         for (int j = 0; j < extensions.count; j++) {
-            if (strcmp(glfwExtensions.extensions[i], extensions.extensions[j].extensionName) == 0) {
+            if (strcmp(necessaryExtensions[i], extensions.extensions[j].extensionName) == 0) {
                 found = 1;
                 break;
             }
         }
         if (found == 0) {
-            fprintf(stderr, "[ERROR] Missing necessary VK extension: %s\n", glfwExtensions.extensions[i]);
+            fprintf(stderr, "[ERROR] Missing necessary VK extension: %s\n", necessaryExtensions[i]);
             missingExtensions++;
         }
         found = 0;
@@ -97,15 +93,13 @@ VkInstance* initVulkanInstance() {
         printf("[INFO]\t\t%s\n", extensions.extensions[i].extensionName);
     }
 
-    // Load GLFW necessary extensions
-    struct GLFWExtensions glfwExtensions = listGLFWExtensions();
-
-    printf("[INFO] glfw necessary extensions:\n");
-    for (int i = 0; i < glfwExtensions.count; i++) {
-        printf("[INFO]\t\t%s\n", glfwExtensions.extensions[i]);
+    // Check necessary extensions
+    printf("[INFO] necessary extensions:\n");
+    for (int i = 0; i < NECESSARY_EXTENSIONS_COUNT; i++) {
+        printf("[INFO]\t\t%s\n", necessaryExtensions[i]);
     }
 
-    int missingExtensionCount = checkForMissingNecessaryExtensions(extensions, glfwExtensions);
+    int missingExtensionCount = checkForMissingNecessaryExtensions(extensions);
     if (missingExtensionCount != 0) {
         fprintf(stderr, "[ERROR] At least %d necessary necessary extensions missing\n", missingExtensionCount);
         return NULL;
@@ -126,8 +120,8 @@ VkInstance* initVulkanInstance() {
     VkInstanceCreateInfo createinfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pApplicationInfo = &appinfo,
-        .enabledExtensionCount = glfwExtensions.count,
-        .ppEnabledExtensionNames = glfwExtensions.extensions,
+        .enabledExtensionCount = NECESSARY_EXTENSIONS_COUNT,
+        .ppEnabledExtensionNames = necessaryExtensions,
     };
 
 #ifdef ENABLE_VALIDATION_LAYERS
@@ -206,4 +200,37 @@ VkPhysicalDevice* initPhysicalDevice(VkInstance* instance) {
     }
 
     return physicalDevice;
+}
+
+VkDevice* createLogicalDevice(VkPhysicalDevice* physicalDevice) {
+    struct QueueFamilyIndices indices = findQueueFamilies(*physicalDevice);
+    float queuePriority = 1.0f;
+
+    VkDeviceQueueCreateInfo queueCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = *indices.graphicsFamily,
+        .queueCount = 1,
+        .pQueuePriorities = &queuePriority,
+    };
+
+    const char* extensions[] = {
+        "VK_KHR_portability_subset",
+    };
+
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+    VkDeviceCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pQueueCreateInfos = &queueCreateInfo,
+        .queueCreateInfoCount = 1,
+        .pEnabledFeatures = &deviceFeatures,
+        .enabledExtensionCount = 1,
+        .ppEnabledExtensionNames = extensions,
+    };
+
+    VkDevice* device = malloc(sizeof(VkDevice));
+    if (vkCreateDevice(*physicalDevice, &createInfo, NULL, device) != VK_SUCCESS) {
+        fprintf(stderr, "[ERROR] failed to create logical device\n");
+        return NULL;
+    }
+    return device;
 }
